@@ -9,6 +9,12 @@
             [ajax.core :refer [GET POST]])
   (:import goog.History))
 
+(enable-console-print!)
+
+(defonce page-state (r/atom 
+                     {:code-input "your code"
+                      :price nil}))
+
 (defn nav-link [uri title page collapsed?]
   [:li.nav-item
    {:class (when (= page (session/get :page)) "active")}
@@ -27,7 +33,8 @@
         [:a.navbar-brand {:href "#/"} "not-so-secure-webapp"]
         [:ul.nav.navbar-nav
          [nav-link "#/" "Home" :home collapsed?]
-         [nav-link "#/about" "About" :about collapsed?]]]])))
+         [nav-link "#/about" "About" :about collapsed?]
+         [nav-link "#/docs" "Docs" :docs collapsed?]]]])))
 
 (defn about-page []
   [:div.container
@@ -35,7 +42,40 @@
     [:div.col-md-12
      "this is the story of not-so-secure-webapp... work in progress"]]])
 
+(defn code-response-handler [response]
+  (do
+    (swap! 
+     page-state 
+     assoc 
+     :price
+     (-> response :body :price))))
+
 (defn home-page []
+  [:div.container
+   [:p "See if you're a lucky and won one our crazy prices!"]
+   [:p "Insert your code below:"]
+   [:form {:method "post"}
+    [:input {:type "text"
+             :value (:code-input @page-state)
+             :on-change (do #(swap! 
+                              page-state 
+                              assoc 
+                              :code-input 
+                              (-> % .-target .-value)))}]
+    [:div.inline]
+    [:input {:class "btn btn-primary"
+             :type "button"
+             :value "check your code!"
+             :onClick #(do (POST "/code"
+                                 {:handler code-response-handler
+                                  :response-format :json
+                                  :keywords? true}))}]]
+   [:div.invline]
+   (when (:price @page-state)
+     [:div#price
+      [:p "You have won: " (:price @page-state)]])])
+
+(defn lum-doc-page []
   [:div.container
    (when-let [docs (session/get :docs)]
      [:div.row>div.col-sm-12
@@ -44,7 +84,8 @@
 
 (def pages
   {:home #'home-page
-   :about #'about-page})
+   :about #'about-page
+   :docs #'lum-doc-page})
 
 (defn page []
   [(pages (session/get :page))])
@@ -58,6 +99,9 @@
 
 (secretary/defroute "/about" []
   (session/put! :page :about))
+
+(secretary/defroute "/docs" []
+  (session/put! :page :docs))
 
 ;; -------------------------
 ;; History

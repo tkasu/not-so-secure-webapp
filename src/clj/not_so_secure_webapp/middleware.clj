@@ -72,11 +72,15 @@
         (wrap-authentication backend)
         (wrap-authorization backend))))
 
+(defn wrap-formats [handler]
+  (wrap-restful-format handler {:formats [:json-kw]}))
+
 (defn wrap-base [handler]
   (-> ((:middleware defaults) handler)
       wrap-auth
       wrap-webjars
       wrap-flash
+      wrap-formats
       (wrap-session {:cookie-attrs {:http-only true}})
       (wrap-defaults
         (-> site-defaults
