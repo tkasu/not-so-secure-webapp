@@ -7,3 +7,10 @@ CREATE TABLE users
  last_login TIME,
  is_active BOOLEAN,
  pass VARCHAR(300));
+
+CREATE TABLE price (
+code VARCHAR(255),
+price VARCHAR(255),
+PRIMARY KEY (code, price)
+);
+

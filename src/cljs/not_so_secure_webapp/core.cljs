@@ -12,8 +12,9 @@
 (enable-console-print!)
 
 (defonce page-state (r/atom 
-                     {:code-input "your code"
-                      :price nil}))
+                     {:code-input "123456-gerbiili"
+                      :price nil
+                      :prices nil}))
 
 (defn nav-link [uri title page collapsed?]
   [:li.nav-item
@@ -44,11 +45,30 @@
 
 (defn code-response-handler [response]
   (do
-    (swap! 
-     page-state 
-     assoc 
-     :price
-     (-> response :body :price))))
+     (swap! 
+       page-state 
+       assoc 
+       :prices
+       (->> response 
+           :body 
+           :prices 
+           (map #(assoc % 
+                   :checked false 
+                   :id (str (:code %) "-" (:price %))))))))
+
+(defn checkbox-click-handler [price]
+  (swap! 
+   page-state
+   assoc
+   :prices
+   (map 
+    (fn [item] (if (= (:id price) (:id item))
+                 (assoc item :checked (not (:checked item)))
+                 (assoc item :checked false)))
+    (:prices @page-state))))
+
+(defn price-chosen []
+  (first (filter :checked (:prices @page-state))))
 
 (defn home-page []
   [:div.container
@@ -67,13 +87,50 @@
              :type "button"
              :value "check your code!"
              :onClick #(do (POST "/code"
-                                 {:handler code-response-handler
+                                 {:params {:code (:code-input @page-state)}
+                                  :handler code-response-handler
                                   :response-format :json
                                   :keywords? true}))}]]
    [:div.invline]
-   (when (:price @page-state)
+   (when (:prices @page-state)
      [:div#price
-      [:p "You have won: " (:price @page-state)]])])
+      #_[:p "You have won: " (rand-nth (:prices @page-state))]
+      [:table {:class "table table-striped"}
+       [:thead
+        [:tr
+         [:th "Your choice"]
+         [:th "Code"]
+         [:th "Price"]]]
+       [:tbody
+        (for [price (:prices @page-state)]
+          ^{:key price}
+          [:tr
+           [:td [:input {:type "checkbox" 
+                         :value "" 
+                         :checked (if (:checked price) "checked" "")
+                         :onClick (do #(checkbox-click-handler price))}]]
+           [:td (:code price)]
+           [:td (:price price)]])]]
+      [:div.inline]
+      (when-let [price-to-send (price-chosen)]
+        [:div.inline]
+        [:form {:method "POST"}
+         [:div.form-group
+          [:label {:for "price"} "Your price:"]
+          [:input.form-control {:type "text" :id "price" :value (:price price-to-send) :disabled true}]]
+         [:div.form-group
+          [:label {:for "email"} "Email address:"]
+          [:input.form-control {:type "email" :id "email"}]]
+         [:div.form-group
+          [:label {:for "street"} "Street address:"]
+          [:input.form-control {:type "text" :id "street"}]]
+         [:input {:class "btn btn-primary"
+             :type "button"
+             :value "Redeem your price!"
+             #_:onClick #_(do (POST "/code"
+                                 {:handler code-response-handler
+                                  :response-format :json
+                                  :keywords? true}))}]])])])
 
 (defn lum-doc-page []
   [:div.container

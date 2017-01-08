@@ -73,7 +73,7 @@
         (wrap-authorization backend))))
 
 (defn wrap-formats [handler]
-  (wrap-restful-format handler {:formats [:json-kw]}))
+  (wrap-restful-format handler {:formats [:json-kw :json :transit-json]}))
 
 (defn wrap-base [handler]
   (-> ((:middleware defaults) handler)

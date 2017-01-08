@@ -9,6 +9,7 @@
                  [cljs-ajax "0.5.8"]
                  [com.h2database/h2 "1.4.192"]
                  [compojure "1.5.1"]
+                 [org.clojure/java.jdbc "0.6.1"]
                  [conman "0.6.2"]
                  [cprop "0.1.9"]
                  [luminus-immutant "0.2.2"]
