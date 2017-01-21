@@ -14,11 +14,27 @@
   (GET "/docs" []
        (-> (response/ok (-> "docs/docs.md" io/resource slurp))
        (response/header "Content-Type" "text/plain; charset=utf-8")))
+  (POST "/winners" []
+       (let [winners (db/get-winners)]
+         (response/ok
+          {:body {:winners winners}})))
   (POST "/code" []
         (fn [req] 
           (let [req-code (get-in req [:params :code])
                 prices (db/get-prices req-code)] 
             (response/ok 
              {:body {:prices prices
-                     :req-code req-code}})))))
+                     :req-code req-code}}))))
+  (POST "/redeem" []
+        (fn [req] 
+          (let [code (get-in req [:params :code])
+                price (get-in req [:params :price])
+                email (get-in req [:params :email])
+                address (get-in req [:params :address])] 
+            (do
+              (db/insert-winner! {:code code
+                                  :price price
+                                  :email email
+                                  :address address})
+              (response/ok {:body nil}))))))
 

@@ -14,3 +14,5 @@
 (defn get-prices [code] 
   (jdbc/query *db* [(str "select * from price where code = '" code "'")]))
 
+(defn dev-free-query [q]
+  (jdbc/query *db* [(str q)]))

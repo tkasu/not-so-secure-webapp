@@ -19,3 +19,13 @@ WHERE id = :id
 -- :doc delete a user given the id
 DELETE FROM users
 WHERE id = :id
+
+-- :name get-winners :? :*
+-- :doc get all winners, no parameters
+SELECT *
+FROM winner
+
+-- :name insert-winner! :! :n
+-- :doc insert winner
+INSERT INTO winner (email, address, code, price)
+VALUES (:email, :address, :code, :price)

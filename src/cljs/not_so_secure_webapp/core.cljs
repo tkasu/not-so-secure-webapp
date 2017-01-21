@@ -14,7 +14,10 @@
 (defonce page-state (r/atom 
                      {:code-input "123456-gerbiili"
                       :price nil
-                      :prices nil}))
+                      :prices nil
+                      :winners nil
+                      :user {:email ""
+                             :address ""}}))
 
 (defn nav-link [uri title page collapsed?]
   [:li.nav-item
@@ -34,6 +37,7 @@
         [:a.navbar-brand {:href "#/"} "not-so-secure-webapp"]
         [:ul.nav.navbar-nav
          [nav-link "#/" "Home" :home collapsed?]
+         [nav-link "#/winners" "Winners" :winners collapsed?]
          [nav-link "#/about" "About" :about collapsed?]
          [nav-link "#/docs" "Docs" :docs collapsed?]]]])))
 
@@ -67,8 +71,50 @@
                  (assoc item :checked false)))
     (:prices @page-state))))
 
+(defn winner-response-handler [response]
+  (do
+     (swap! 
+       page-state 
+       assoc 
+       :winners
+       (->> response 
+           :body 
+           :winners 
+           )))
+  (print @page-state))
+
 (defn price-chosen []
   (first (filter :checked (:prices @page-state))))
+
+(defn winners-page []
+  [:div.container
+   [:form {:method "post"}
+    [:input {:class "btn btn-primary"
+             :type "button"
+             :value "Check the past winners!"
+             :onClick #(do (POST "/winners"
+                                 {:params nil
+                                  :handler winner-response-handler
+                                  :response-format :json
+                                  :keywords? true}))}]]
+   [:p "Past winners:"]
+   (when-let  [winners (:winners @page-state)]
+     [:div.inline]
+     [:p (:prices @page-state)]
+     [:div#price
+      [:table {:class "table table-striped"}
+       [:thead
+        [:tr
+         [:th "Email"]
+         [:th "Address"]
+         [:th "Price"]]]
+       [:tbody
+        (for [winner winners]
+          ^{:key winner}
+          [:tr
+           [:td (:email winner)]
+           [:td (:address winner)]
+           [:td (:price winner)]])]]])])
 
 (defn home-page []
   [:div.container
@@ -94,7 +140,6 @@
    [:div.invline]
    (when (:prices @page-state)
      [:div#price
-      #_[:p "You have won: " (rand-nth (:prices @page-state))]
       [:table {:class "table table-striped"}
        [:thead
         [:tr
@@ -117,20 +162,41 @@
         [:form {:method "POST"}
          [:div.form-group
           [:label {:for "price"} "Your price:"]
-          [:input.form-control {:type "text" :id "price" :value (:price price-to-send) :disabled true}]]
+          [:input.form-control 
+           {:type "text" :id "price" :value (:price price-to-send) :disabled true}]]
          [:div.form-group
           [:label {:for "email"} "Email address:"]
-          [:input.form-control {:type "email" :id "email"}]]
+          [:input.form-control 
+           {:type "email" 
+            :id "email"
+            :value (get-in @page-state [:user :email])
+            :on-change (do #(swap! 
+                              page-state 
+                              assoc-in
+                              [:user :email]
+                              (-> % .-target .-value)))}
+           ]]
          [:div.form-group
           [:label {:for "street"} "Street address:"]
-          [:input.form-control {:type "text" :id "street"}]]
+          [:input.form-control 
+           {:type "text" 
+            :id "street"
+            :value (get-in @page-state [:user :address])
+            :on-change (do #(swap! 
+                              page-state 
+                              assoc-in
+                              [:user :address]
+                              (-> % .-target .-value)))}]]
          [:input {:class "btn btn-primary"
              :type "button"
              :value "Redeem your price!"
-             #_:onClick #_(do (POST "/code"
-                                 {:handler code-response-handler
+             :onClick (do #(POST "/redeem"
+                                 {:params {:code (:code price-to-send)
+                                           :price (:price price-to-send)
+                                           :email (get-in @page-state [:user :email])
+                                           :address (get-in @page-state [:user :address])}
                                   :response-format :json
-                                  :keywords? true}))}]])])])
+                                 :keywords? true}))}]])])])
 
 (defn lum-doc-page []
   [:div.container
@@ -141,6 +207,7 @@
 
 (def pages
   {:home #'home-page
+   :winners #'winners-page
    :about #'about-page
    :docs #'lum-doc-page})
 
@@ -153,6 +220,9 @@
 
 (secretary/defroute "/" []
   (session/put! :page :home))
+
+(secretary/defroute "/winners" []
+  (session/put! :page :winners))
 
 (secretary/defroute "/about" []
   (session/put! :page :about))

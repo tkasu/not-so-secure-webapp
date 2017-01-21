@@ -14,3 +14,11 @@ price VARCHAR(255),
 PRIMARY KEY (code, price)
 );
 
+CREATE TABLE winner (
+winner_id INT AUTO_INCREMENT PRIMARY KEY,
+email VARCHAR(255) NOT NULL,
+address VARCHAR(255) NOT NULL,
+code VARCHAR(255) NOT NULL,
+price VARCHAR(255) NOT NULL,
+FOREIGN KEY (code, price) REFERENCES price (code, price)
+);
