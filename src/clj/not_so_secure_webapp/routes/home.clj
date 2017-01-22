@@ -36,5 +36,12 @@
                                   :price price
                                   :email email
                                   :address address})
-              (response/ok {:body nil}))))))
+              (response/ok {:body nil})))))
+  (POST "/signin" []
+        (fn [req] 
+          (let [user-id (get-in req [:params :id])
+                password (get-in req [:params :password])] 
+            (if (not-empty (db/get-admin {:id user-id :password password}))
+              (response/ok {:body nil})
+              (response/unauthorized {:body nil}))))))
 

@@ -17,7 +17,21 @@
                       :prices nil
                       :winners nil
                       :user {:email ""
-                             :address ""}}))
+                             :address ""
+                             :id ""
+                             :password ""}
+                      :login-err nil}))
+
+(defn reset-page-state! []
+  (reset! page-state {:code-input "123456-gerbiili"
+                      :price nil
+                      :prices nil
+                      :winners nil
+                      :user {:email ""
+                             :address ""
+                             :id ""
+                             :password ""}
+                      :login-err nil}))
 
 (defn nav-link [uri title page collapsed?]
   [:li.nav-item
@@ -39,7 +53,8 @@
          [nav-link "#/" "Home" :home collapsed?]
          [nav-link "#/winners" "Winners" :winners collapsed?]
          [nav-link "#/about" "About" :about collapsed?]
-         [nav-link "#/docs" "Docs" :docs collapsed?]]]])))
+         [nav-link "#/docs" "Docs" :docs collapsed?]
+         [nav-link "#/signin" "Admin" :docs collapsed?]]]])))
 
 (defn about-page []
   [:div.container
@@ -83,8 +98,70 @@
            )))
   (print @page-state))
 
+(defn redeem-response-handler [response]
+  (do
+    (reset-page-state!)
+    (session/put! :page :winners)))
+
+(defn signin-response-handler [response]
+  (do
+    (session/put! :page :admin)))
+
+(defn signin-response-err-handler [response]
+  (do
+    (swap! page-state assoc :login-err "Incorrect user and/or password!")))
+
 (defn price-chosen []
   (first (filter :checked (:prices @page-state))))
+
+(defn admin-page []
+  [:div.container
+   [:div.row
+    [:div.col-md-12 "such admin"]]])
+
+(defn signin-page []
+  [:div.container
+   [:div.row
+    [:div.col-md-12
+     [:h2 "Login admin"]]]
+   [:form {:method "POST"}
+         [:div.form-group
+          [:label {:for "id"} "username"]
+          [:input.form-control 
+           {:type "text" 
+            :id "id"
+            :value (get-in @page-state [:user :id])
+            :on-change (do #(swap! 
+                              page-state 
+                              assoc-in
+                              [:user :id]
+                              (-> % .-target .-value)))}
+           ]]
+         [:div.form-group
+          [:label {:for "password"} "password"]
+          [:input.form-control 
+           {:type "password" 
+            :id "password"
+            :value (get-in @page-state [:user :password])
+            :on-change (do #(swap! 
+                              page-state 
+                              assoc-in
+                              [:user :password]
+                              (-> % .-target .-value)))}]]
+         [:input {:class "btn btn-primary"
+             :type "button"
+             :value "Log In!"
+             :onClick (do 
+                        #(swap! page-state assoc :login-err nil)
+                        #(POST "/signin"
+                               {:params {:id (get-in @page-state [:user :id])
+                                         :password (get-in @page-state [:user :password])}
+                                :handler signin-response-handler
+                                :error-handler signin-response-err-handler
+                                :keywords? true}))}]]
+   [:br]
+   (when-let [err-msg (:login-err @page-state)]
+     [:div {:class "alert alert-danger"} err-msg])])
 
 (defn winners-page []
   [:div.container
@@ -95,7 +172,6 @@
              :onClick #(do (POST "/winners"
                                  {:params nil
                                   :handler winner-response-handler
-                                  :response-format :json
                                   :keywords? true}))}]]
    [:p "Past winners:"]
    (when-let  [winners (:winners @page-state)]
@@ -112,8 +188,9 @@
         (for [winner winners]
           ^{:key winner}
           [:tr
-           [:td (:email winner)]
-           [:td (:address winner)]
+           ; This is a bit forced, I know.
+           [:td {:dangerouslySetInnerHTML {:__html (:email winner)}}]
+           [:td {:dangerouslySetInnerHTML {:__html (:address winner)}}]
            [:td (:price winner)]])]]])])
 
 (defn home-page []
@@ -195,8 +272,9 @@
                                            :price (:price price-to-send)
                                            :email (get-in @page-state [:user :email])
                                            :address (get-in @page-state [:user :address])}
+                                  :handler redeem-response-handler
                                   :response-format :json
-                                 :keywords? true}))}]])])])
+                                  :keywords? true}))}]])])])
 
 (defn lum-doc-page []
   [:div.container
@@ -209,7 +287,9 @@
   {:home #'home-page
    :winners #'winners-page
    :about #'about-page
-   :docs #'lum-doc-page})
+   :docs #'lum-doc-page
+   :signin #'signin-page
+   :admin #'admin-page})
 
 (defn page []
   [(pages (session/get :page))])
@@ -229,6 +309,12 @@
 
 (secretary/defroute "/docs" []
   (session/put! :page :docs))
+
+(secretary/defroute "/signin" []
+  (session/put! :page :signin))
+
+(secretary/defroute "/admin" []
+  (session/put! :page :admin))
 
 ;; -------------------------
 ;; History

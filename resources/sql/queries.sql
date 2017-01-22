@@ -29,3 +29,9 @@ FROM winner
 -- :doc insert winner
 INSERT INTO winner (email, address, code, price)
 VALUES (:email, :address, :code, :price)
+
+-- :name get-admin :? :1
+-- :doc returns row if given id and password matches admin
+SELECT *
+FROM users
+WHERE id = :id AND pass = :password AND admin = TRUE
