@@ -1,6 +1,6 @@
 (ns not-so-secure-webapp.routes.home
   (:require [not-so-secure-webapp.layout :as layout]
-            [compojure.core :refer [defroutes GET POST]]
+            [compojure.core :refer [defroutes GET POST DELETE PUT]]
             [ring.util.http-response :as response]
             [clojure.java.io :as io]
             [not-so-secure-webapp.db.core :as db]))
@@ -14,10 +14,14 @@
   (GET "/docs" []
        (-> (response/ok (-> "docs/docs.md" io/resource slurp))
        (response/header "Content-Type" "text/plain; charset=utf-8")))
-  (POST "/winners" []
+  (GET "/winners" []
        (let [winners (db/get-winners)]
          (response/ok
           {:body {:winners winners}})))
+  (GET "/prices" []
+       (let [prices (db/get-avail-prices)]
+         (response/ok
+          {:body {:prices prices}})))
   (POST "/code" []
         (fn [req] 
           (let [req-code (get-in req [:params :code])
@@ -43,5 +47,19 @@
                 password (get-in req [:params :password])] 
             (if (not-empty (db/get-admin {:id user-id :password password}))
               (response/ok {:body nil})
-              (response/unauthorized {:body nil}))))))
+              (response/unauthorized {:body nil})))))
+  (DELETE "/price" []
+          (fn [req]
+            (let [code (get-in req [:params :code])
+                  price (get-in req [:params :price])]
+              (do
+                (db/delete-price! {:code code :price price})
+                (response/ok {:body nil})))))
+  (PUT "/price" []
+          (fn [req]
+            (let [code (get-in req [:params :code])
+                  price (get-in req [:params :price])]
+              (do
+                (db/insert-price! {:code code :price price})
+                (response/ok {:body nil}))))))
 

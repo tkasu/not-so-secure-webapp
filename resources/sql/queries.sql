@@ -35,3 +35,20 @@ VALUES (:email, :address, :code, :price)
 SELECT *
 FROM users
 WHERE id = :id AND pass = :password AND admin = TRUE
+
+
+-- :name get-avail-prices :? :*
+-- :doc return all prices that are not acquired yet
+SELECT *
+FROM price
+WHERE code NOT IN (SELECT DISTINCT code FROM winner)
+
+-- :name delete-price! :! :n
+-- :doc delete price based on given code and price
+DELETE FROM price
+WHERE code = :code AND price = :price
+
+-- :name insert-price! :! :n
+-- :dov insert price with given code and price
+INSERT INTO price (code, price)
+VALUES (:code, :price)
