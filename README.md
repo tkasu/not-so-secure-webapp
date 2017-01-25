@@ -42,6 +42,7 @@ Vulnerabilities below are done intentionally and are chosen from https://www.owa
 
 Issue: SQL Injection
 Steps to reproduce:
+
 1. Go to section "Home" from navbar
 2. Write " ' OR '1' = '1 " to the input box
 3. Click "check your code!"
@@ -59,6 +60,7 @@ To fix this, one should use parametrizes query. In the case of this application,
 
 Issue: XSS vulnerability
 Steps to reproduce:
+
 1. Go to section "Home" from navbar
 2. Use a code from [test-h2-data](resources/migrations/20170106140736-add-data.up.sql) or use the SQL injection flaw above
 3. Click "check your code!"

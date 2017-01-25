@@ -15,8 +15,7 @@
   (jdbc/query *db* [(str 
                      "select * from price where code = '" code "' and code not in (select code from winner)")]))
 
-(defn dev-free-query [q]
+#_(defn dev-free-query [q]
   (jdbc/query *db* [(str q)]))
 
-#_(defn is-admin? [param-m]
-  (not-empty? (get-admin param-m)))
+
