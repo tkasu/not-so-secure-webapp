@@ -6,7 +6,7 @@
             [goog.history.EventType :as HistoryEventType]
             [markdown.core :refer [md->html]]
             [not-so-secure-webapp.ajax :refer [load-interceptors!]]
-            [ajax.core :refer [GET POST]])
+            [ajax.core :refer [GET POST DELETE PUT]])
   (:import goog.History))
 
 (enable-console-print!)
@@ -20,7 +20,10 @@
                              :address ""
                              :id ""
                              :password ""}
-                      :login-err nil}))
+                      :login-err nil
+                      :prices-all nil
+                      :new-code nil
+                      :new-price nil}))
 
 (defn reset-page-state! []
   (reset! page-state {:code-input "123456-gerbiili"
@@ -31,7 +34,10 @@
                              :address ""
                              :id ""
                              :password ""}
-                      :login-err nil}))
+                      :login-err nil
+                      :prices-all nil
+                      :new-code nil
+                      :new-price nil}))
 
 (defn nav-link [uri title page collapsed?]
   [:li.nav-item
@@ -52,8 +58,8 @@
         [:ul.nav.navbar-nav
          [nav-link "#/" "Home" :home collapsed?]
          [nav-link "#/winners" "Winners" :winners collapsed?]
-         [nav-link "#/about" "About" :about collapsed?]
-         [nav-link "#/docs" "Docs" :docs collapsed?]
+         ;[nav-link "#/about" "About" :about collapsed?]
+         ;[nav-link "#/docs" "Docs" :docs collapsed?]
          [nav-link "#/signin" "Admin" :docs collapsed?]]]])))
 
 (defn about-page []
@@ -98,6 +104,18 @@
            )))
   (print @page-state))
 
+(defn prices-response-handler [response]
+  (do
+     (swap! 
+       page-state 
+       assoc 
+       :prices-all
+       (->> response 
+           :body 
+           :prices
+           )))
+  (print @page-state))
+
 (defn redeem-response-handler [response]
   (do
     (reset-page-state!)
@@ -111,13 +129,94 @@
   (do
     (swap! page-state assoc :login-err "Incorrect user and/or password!")))
 
+(defn delete-response-handler [response]
+  (do
+    (GET "/prices"
+         {:params nil
+          :handler prices-response-handler
+          :keywords? true})))
+
+(defn put-response-handler [response]
+  (do
+    (GET "/prices"
+         {:params nil
+          :handler prices-response-handler
+          :keywords? true})
+    (swap! page-state assoc :new-code nil)
+    (swap! page-state assoc :new-price nil)))
+
 (defn price-chosen []
   (first (filter :checked (:prices @page-state))))
 
 (defn admin-page []
   [:div.container
-   [:div.row
-    [:div.col-md-12 "such admin"]]])
+   [:div.row]
+   [:form {:method "get"}
+    [:input {:class "btn btn-primary"
+             :type "button"
+             :value "Get codes and prices!"
+             :onClick #(do (GET "/prices"
+                                 {:params nil
+                                  :handler prices-response-handler
+                                  :keywords? true}))}]]
+   (when-let  [prices (:prices-all @page-state)]
+     [:div.inline]
+     [:p (:prices @page-state)]
+     [:div#price
+      [:table {:class "table table-striped"}
+       [:thead
+        [:tr
+         [:th "Code"]
+         [:th "Price"]
+         [:th "Delete?"]]]
+       [:tbody
+        (for [price prices]
+          ^{:key price}
+          [:tr
+           ; This is a bit forced, I know.
+           [:td (:code price)]
+           [:td (:price price)]
+           [:td [:button {:type "button" 
+                          :class "btn btn-danger"
+                          :onClick #(do (DELETE "/price"
+                                                {:params {:price (:price price)
+                                                          :code (:code price)}
+                                                 :handler delete-response-handler
+                                                 :keywords? true}))}]]])]]])
+   [:div.inline]
+   [:form {:method "PUT"}
+         [:div.form-group
+          [:label {:for "code"} "Code"]
+          [:input.form-control 
+           {:type "text" 
+            :id "code"
+            :value (:new-code @page-state)
+            :on-change (do #(swap! 
+                              page-state 
+                              assoc
+                              :new-code
+                              (-> % .-target .-value)))}
+           ]]
+         [:div.form-group
+          [:label {:for "price"} "Price"]
+          [:input.form-control 
+           {:type "text" 
+            :id "price"
+            :value (:new-price @page-state)
+            :on-change (do #(swap! 
+                              page-state 
+                              assoc
+                              :new-price
+                              (-> % .-target .-value)))}]]
+         [:input {:class "btn btn-primary"
+             :type "button"
+             :value "Add new price!"
+             :onClick (do #(PUT "/price"
+                                 {:params {:code (:new-code @page-state)
+                                           :price (:new-price @page-state)}
+                                  :handler put-response-handler
+                                  :response-format :json
+                                  :keywords? true}))}]]])
 
 (defn signin-page []
   [:div.container
@@ -125,30 +224,30 @@
     [:div.col-md-12
      [:h2 "Login admin"]]]
    [:form {:method "POST"}
-         [:div.form-group
-          [:label {:for "id"} "username"]
-          [:input.form-control 
-           {:type "text" 
-            :id "id"
-            :value (get-in @page-state [:user :id])
-            :on-change (do #(swap! 
-                              page-state 
-                              assoc-in
-                              [:user :id]
-                              (-> % .-target .-value)))}
-           ]]
-         [:div.form-group
-          [:label {:for "password"} "password"]
-          [:input.form-control 
-           {:type "password" 
-            :id "password"
-            :value (get-in @page-state [:user :password])
-            :on-change (do #(swap! 
-                              page-state 
-                              assoc-in
-                              [:user :password]
-                              (-> % .-target .-value)))}]]
-         [:input {:class "btn btn-primary"
+    [:div.form-group
+     [:label {:for "id"} "username"]
+     [:input.form-control 
+      {:type "text" 
+       :id "id"
+       :value (get-in @page-state [:user :id])
+       :on-change (do #(swap! 
+                        page-state 
+                        assoc-in
+                        [:user :id]
+                        (-> % .-target .-value)))}
+      ]]
+    [:div.form-group
+     [:label {:for "password"} "password"]
+     [:input.form-control 
+      {:type "password" 
+       :id "password"
+       :value (get-in @page-state [:user :password])
+       :on-change (do #(swap! 
+                        page-state 
+                        assoc-in
+                        [:user :password]
+                        (-> % .-target .-value)))}]]
+    [:input {:class "btn btn-primary"
              :type "button"
              :value "Log In!"
              :onClick (do 
@@ -165,11 +264,11 @@
 
 (defn winners-page []
   [:div.container
-   [:form {:method "post"}
+   [:form {:method "get"}
     [:input {:class "btn btn-primary"
              :type "button"
              :value "Check the past winners!"
-             :onClick #(do (POST "/winners"
+             :onClick #(do (GET "/winners"
                                  {:params nil
                                   :handler winner-response-handler
                                   :keywords? true}))}]]
