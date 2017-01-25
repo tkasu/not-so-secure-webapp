@@ -52,6 +52,16 @@ Steps to reproduce:
 
 Function get-prices in [db/core.clj](src/clj/not_so_secure_webapp/db/core.clj) concatinates user input directly to SQL-query. 
 
+```clojure
+(defn get-prices [code] 
+  (jdbc/query 
+   *db* 
+   [(str 
+     "select * from price where code = '" 
+     code 
+     "' and code not in (select code from winner)")]))
+```
+
 To fix this, one should use parametrizes query. In the case of this application, query should be moved to [queries.sql](resources/sql/queries.sql) so that user input code can be parametrized. See https://www.hugsql.org/ for more details.
 
 ### XSS
