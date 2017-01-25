@@ -71,7 +71,7 @@ Steps to reproduce:
 
 #### Fixing proposal
 
-Problem is that function winners-page in [core.cljs](src/cljs/not_so_secure_webapp/core.cljs) uses React.js tag "dangerouslySetInnerHTML". That causes React not to quote html-tags. However, browsers don't evaluate <script> tags set to InnerHTML, but it might still be possible to use e.g. <img> onload and onerror attributes to evaluate scripts in victims browser.
+Problem is that function winners-page in [core.cljs](src/cljs/not_so_secure_webapp/core.cljs) uses React.js tag "dangerouslySetInnerHTML". That causes React not to quote html-tags. However, browsers don't evaluate \<script> tags set to InnerHTML, but it might still be possible to use e.g. <img> onload and onerror attributes to evaluate scripts in victims browser.
 
 To fix this just replace below code:
 
