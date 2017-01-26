@@ -12,8 +12,12 @@
 (conman/bind-connection *db* "sql/queries.sql")
 
 (defn get-prices [code] 
-  (jdbc/query *db* [(str 
-                     "select * from price where code = '" code "' and code not in (select code from winner)")]))
+  (jdbc/query 
+   *db* 
+   [(str 
+     "select * from price where code = '" 
+     code 
+     "' and code not in (select code from winner)")]))
 
 #_(defn dev-free-query [q]
   (jdbc/query *db* [(str q)]))

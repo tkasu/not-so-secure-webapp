@@ -20,7 +20,7 @@
         template
         (assoc params
           :page template
-          :csrf-token *anti-forgery-token*
+          ;:csrf-token *anti-forgery-token*
           :servlet-context *app-context*)))
     "text/html; charset=utf-8"))
 
