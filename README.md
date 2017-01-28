@@ -18,6 +18,8 @@ To start a web server for the application, run:
 
 ### with Leiningen
     
+    git clone https://github.com/tkasu/not-so-secure-webapp.git
+    cd not-so-secure-webapp
     export DATABASE_URL="jdbc:h2:./mydb.db"
     lein cljsbuild once
     lein run migrate
@@ -26,7 +28,9 @@ To start a web server for the application, run:
 open localhost:3000 with your browser
     
 ### with provided .jar
-     
+    
+    git clone https://github.com/tkasu/not-so-secure-webapp.git
+    cd not-so-secure-webapp
     export DATABASE_URL="jdbc:h2:./mydb.db"
     java -jar target/uberjar/not-so-secure-webapp.jar migrate
     java -jar target/uberjar/not-so-secure-webapp.jar
@@ -156,6 +160,12 @@ Params:
 11. Click "check your code!"
 12. Redeem White House
 
+### Fixing proposal
+
+Instead of just redirecting successful login attempt to /#/admin, application should use e.g. session based authentication and authororization. All functionalities above should check if user is authenticated and if so, if user is authorized to access the functionalitiy.
+
+For examples how to implement this, see e.g. [Luminus, restricting access](http://www.luminusweb.net/docs/routes.md#restricting_access), [Buddy-auth docs](https://funcool.github.io/buddy-auth/latest/#_authentication) and [Buddy-auth Session auth example](https://github.com/funcool/buddy-auth/blob/master/examples/httpbasic/src/authexample/web.clj).
+
 ### Cross-Site Request Forgery (CSRF)
 
 #### Flaw
@@ -223,6 +233,31 @@ After that addition, the function should look like e.g. this:
           :servlet-context *app-context*)))
     "text/html; charset=utf-8"))
 ```
+
+### Security Misconfiguration
+≈ß
+#### FLaw
+
+Issue: Admin user default username, weak password and no protection for brute force sing in attack
+Step to reproduce:
+
+1. Go to section "Admin" from navbar
+2. Type "Admin" for username
+3. Download some tool (e.g. [OWASP Zed](https://www.owasp.org/index.php/OWASP_Zed_Attack_Proxy_Project) or [browser-fuzzer](https://github.com/tkasu/browser-fuzzer) to brute force passwords
+4. Use [SecLists top 100 passwords](https://github.com/danielmiessler/SecLists/blob/master/Passwords/10_million_password_list_top_1000.txt) as password input
+5. Run the tool of your choise
+6. Enjoy admin rights
+
+#### Fixing proposal
+
+Just use stronger admin crendentials.
+
+Also, one should should implement limit how many times certain IP / user can try to login in certain period of time.
+
+### Other known flaws
+
+1. Passwords are not hashed
+2. User can use /redeem to redeem the same price unlimited times
 
 ## LICENSE
 
