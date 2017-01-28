@@ -21,6 +21,7 @@
                              :id ""
                              :password ""}
                       :login-err nil
+                      :code-err nil
                       :prices-all nil
                       :new-code nil
                       :new-price nil}))
@@ -35,6 +36,7 @@
                              :id ""
                              :password ""}
                       :login-err nil
+                      :code-err nil
                       :prices-all nil
                       :new-code nil
                       :new-price nil}))
@@ -69,17 +71,23 @@
      "this is the story of not-so-secure-webapp... work in progress"]]])
 
 (defn code-response-handler [response]
-  (do
-     (swap! 
+  (let [prices (->> response :body :prices)] 
+    (do
+      (if (empty? prices)
+        (swap! 
+         page-state 
+         assoc 
+         :code-err 
+         (str "Sorry! No prices for code: " (:code-input @page-state)))
+        (swap! page-state assoc :code-err nil))
+      (swap! 
        page-state 
        assoc 
        :prices
-       (->> response 
-           :body 
-           :prices 
-           (map #(assoc % 
-                   :checked false 
-                   :id (str (:code %) "-" (:price %))))))))
+       (->> prices
+            (map #(assoc % 
+                    :checked false 
+                    :id (str (:code %) "-" (:price %)))))))))
 
 (defn checkbox-click-handler [price]
   (swap! 
@@ -105,15 +113,13 @@
   (print @page-state))
 
 (defn prices-response-handler [response]
-  (do
-     (swap! 
+  (let [prices (->> response :body :prices)] 
+    (do
+      (swap! 
        page-state 
        assoc 
        :prices-all
-       (->> response 
-           :body 
-           :prices
-           )))
+       prices)))
   (print @page-state))
 
 (defn redeem-response-handler [response]
@@ -123,6 +129,7 @@
 
 (defn signin-response-handler [response]
   (do
+    (swap! page-state assoc :login-err nil)
     (session/put! :page :admin)))
 
 (defn signin-response-err-handler [response]
@@ -251,7 +258,6 @@
              :type "button"
              :value "Log In!"
              :onClick (do 
-                        #(swap! page-state assoc :login-err nil)
                         #(POST "/signin"
                                {:params {:id (get-in @page-state [:user :id])
                                          :password (get-in @page-state [:user :password])}
@@ -296,6 +302,8 @@
   [:div.container
    [:p "See if you're a lucky and won one our crazy prices!"]
    [:p "Insert your code below:"]
+   (when-let [err-msg (:code-err @page-state)]
+     [:div {:class "alert alert-danger"} err-msg])
    [:form {:method "post"}
     [:input {:type "text"
              :value (:code-input @page-state)
@@ -308,11 +316,12 @@
     [:input {:class "btn btn-primary"
              :type "button"
              :value "check your code!"
-             :onClick #(do (POST "/code"
-                                 {:params {:code (:code-input @page-state)}
-                                  :handler code-response-handler
-                                  :response-format :json
-                                  :keywords? true}))}]]
+             :onClick (do 
+                        #(POST "/code"
+                               {:params {:code (:code-input @page-state)}
+                                :handler code-response-handler
+                                :response-format :json
+                                :keywords? true}))}]]
    [:div.invline]
    (when (:prices @page-state)
      [:div#price
