@@ -37,6 +37,14 @@ open localhost:3000 with your browser
 
 open localhost:3000 with your browser
 
+### Tested with
+
+* macOS Sierra 10.12.2
+* Ubuntu 16.04
+* Windows 10 with [Git Bash terminal](https://git-scm.com/downloads)
+
+Same instructions apply to all three operating systems. If you have problems please raise an issue in Github.
+
 ## Vulnerabilities
 
 Vulnerabilities below are done intentionally and are chosen from https://www.owasp.org/index.php/Top_10_2013-Top_10 
